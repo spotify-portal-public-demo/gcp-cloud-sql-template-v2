@@ -20,7 +20,7 @@ provider "google" {
 resource "google_sql_database_instance" "${{ values.component_id }}" {
   name = "${{ values.component_id }}"
 
-  database_version = "POSTGRES_17"
+  database_version = "POSTGRES_16"
   root_password    = var.db_password
 
   settings {
