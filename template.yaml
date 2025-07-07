@@ -1,8 +1,8 @@
 apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
-  name: gcp-cloud-sql-template
-  title: GCP - Cloud SQL
+  name: gcp-cloud-sql-template-v2
+  title: GCP - Cloud SQL - V2
   description: Create a Cloud SQL instance in GCP
   tags:
     - infra
@@ -30,8 +30,15 @@ spec:
 
     - title: Ownership
       required:
+        - organisation
         - owner
       properties:
+        organisation:
+          title: Organisation
+          type: string
+          description: GitHub Organisation where this will live
+          enum:
+            - spotify-portal-public-demo
         owner:
           title: Owner
           type: string
@@ -68,18 +75,6 @@ spec:
           description: Root password for the database, will be stored as a GitHub secret
           ui:field: Secret
 
-    - title: Location
-      required:
-        - repoUrl
-      properties:
-        repoUrl:
-          title: Repository location
-          type: string
-          ui:field: RepoUrlPicker
-          ui:options:
-            allowedHosts:
-              - github.com
-
   steps:
     - id: template
       name: Fetch Skeleton
@@ -91,16 +86,38 @@ spec:
         values:
           component_id: ${{ parameters.component_id }}
           description: ${{ parameters.description }}
+          organisation: ${{ parameters.organisation }}
           owner: ${{ parameters.owner }}
           system: ${{ parameters.system }}
           region: ${{ parameters.region }}
-          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: create_catalog
+      name: Create Catalog File
+      action: catalog:write
+      input:
+        entity:
+          apiVersion: backstage.io/v1alpha1
+          kind: Resource
+          metadata:
+            name: ${{ parameters.component_id }}
+            description: ${{ parameters.description }}
+            tags:
+              - gcp
+              - cloud-sql
+            annotations:
+              backstage.io/techdocs-ref: dir:.
+              github.com/project-slug: ${{ parameters.organisation }}/${{ parameters.component_id }}
+          spec:
+            type: database
+            lifecycle: experimental
+            owner: ${{ parameters.owner }}
+            system: ${{ parameters.system }}
 
     - id: publish
       name: Publish
       action: publish:github
       input:
-        repoUrl: ${{ parameters.repoUrl }}
+        repoUrl: github.com?owner=${{ parameters.organisation }}&repo=${{ parameters.component_id }}
         description: This is ${{ parameters.component_id }}
         repoVisibility: public
         defaultBranch: main
